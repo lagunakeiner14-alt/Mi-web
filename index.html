@@ -1,12 +1,735 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página de Keyner</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MegaStore Fútbol — Guayos & Camisetas</title>
+<meta name="description" content="Tienda demo de guayos y camisetas: catálogo, filtros, carrito persistente, checkout simulado, reseñas y recomendador."/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071026; --panel:#0b1830; --muted:#9fb4c8; --accent:#1fb6ff; --accent-2:#06b6d4;
+    --glass: rgba(255,255,255,0.03);
+    --success:#16a34a; --danger:#ef4444;
+    --card-radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,Arial; background:linear-gradient(180deg,#041123 0%, #071226 100%); color:#e6eef8;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Header */
+  header{display:flex;align-items:center;gap:16px;padding:18px;max-width:1200px;margin:18px auto;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);border-radius:12px}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(180deg,#07304f,#0b2136);display:flex;align-items:center;justify-content:center}
+  header h1{margin:0;font-size:20px}
+  header p{margin:0;color:var(--muted);font-size:13px}
+
+  /* Top controls */
+  .controls{max-width:1200px;margin:14px auto 0;padding:0 18px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .filters{display:flex;gap:8px;align-items:center}
+  input.search{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:inherit;min-width:260px}
+  select, input[type=number]{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+
+  /* Layout */
+  main{max-width:1200px;margin:18px auto;padding:0 18px 60px}
+  .layout{display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media (max-width:980px){ .layout{grid-template-columns:1fr} .sticky-panel{position:static} .controls{flex-direction:column;align-items:stretch} }
+
+  /* Catalog cards */
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); padding:12px; border-radius:var(--card-radius); box-shadow:0 10px 40px rgba(0,0,0,0.6);}
+  .catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .product{border-radius:12px;overflow:hidden;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.02);display:flex;flex-direction:column;transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s}
+  .product:hover{transform:translateY(-8px);box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+  .pimg{width:100%;height:160px;object-fit:cover;background:#021827;display:block}
+  .pbody{padding:10px;display:flex;flex-direction:column;gap:8px}
+  .pbrand{font-size:12px;color:var(--muted)}
+  .pname{font-weight:700}
+  .pmeta{display:flex;justify-content:space-between;align-items:center}
+  .pactions{display:flex;gap:8px}
+  .btn{background:var(--accent);color:#042033;border:none;padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:700}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  .badge{background:var(--glass);padding:4px 8px;border-radius:999px;color:var(--muted);font-size:12px}
+
+  /* Side cart */
+  .sticky-panel{position:sticky;top:20px}
+  .cart-head{display:flex;justify-content:space-between;align-items:center}
+  .cart-items{margin-top:8px;max-height:420px;overflow:auto}
+  .cart-row{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03)}
+  .cart-row img{width:56px;height:44px;object-fit:cover;border-radius:6px}
+  .cart-controls{display:flex;gap:6px;align-items:center}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:60}
+  .modal{background:#071226;padding:18px;border-radius:10px;max-width:900px;width:96%;box-shadow:0 20px 80px rgba(0,0,0,0.8)}
+
+  /* small */
+  .muted{color:var(--muted)}
+  footer{max-width:1200px;margin:28px auto;color:var(--muted);text-align:center;padding-bottom:40px}
+  /* badges for tiers */
+  .tier-low{background:#123e1e;color:#bff0c4;padding:6px;border-radius:8px;font-weight:700}
+  .tier-mid{background:#7a4dd1;color:#f0e8ff;padding:6px;border-radius:8px;font-weight:700}
+  .tier-high{background:#ffb020;color:#2b1d00;padding:6px;border-radius:8px;font-weight:700}
+
+  /* reviews */
+  .stars{color:#f5d44d;font-size:14px}
+  /* small responsive tweaks */
+  @media (max-width:520px){ .pimg{height:140px} header h1{font-size:16px} .controls{padding:8px} }
+</style>
 </head>
 <body>
-    <h1>¡Bienvenido a mi primera página web!</h1>
-    <p>Esta es una prueba de que mi sitio web está funcionando correctamente con GitHub Pages.</p>
-    </body>
+
+<header>
+  <div class="brand">
+    <div class="logo" aria-hidden>
+      <svg viewBox="0 0 100 100" width="46" height="46" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#1fb6ff"/><stop offset="1" stop-color="#0ea5a4"/></linearGradient></defs><rect width="100" height="100" rx="16" fill="url(#g)"/><path d="M25 70 L45 30 L65 70 Z" fill="#042033" opacity="0.9"/></svg>
+    </div>
+    <div>
+      <h1>MegaStore Fútbol</h1>
+      <p class="muted">Guayos • Camisetas • Carrito • Checkout simulado • Reseñas • Recomendador</p>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="badge" id="cartSummary">Carrito: 0 • $0</div>
+    <button class="btn" id="btnExport" title="Exportar pedidos (simulado)">Exportar pedidos</button>
+  </div>
+</header>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="filters">
+    <input id="search" class="search" placeholder="Buscar por nombre, marca o tipo..." />
+    <select id="filterBrand">
+      <option value="">Todas las marcas</option>
+      <option>Adidas</option><option>Nike</option><option>Puma</option>
+    </select>
+    <select id="filterType">
+      <option value="">Todos los tipos</option>
+      <option value="FG">FG (Firm Ground)</option>
+      <option value="AG">AG (Artificial)</option>
+      <option value="Turf">Turf</option>
+      <option value="Sala">Sala / Indoor</option>
+    </select>
+    <select id="filterTier">
+      <option value="">Todas las gamas</option>
+      <option value="low">Gama baja</option>
+      <option value="mid">Gama media</option>
+      <option value="high">Gama alta</option>
+    </select>
+    <input type="number" id="minPrice" placeholder="Min $"/>
+    <input type="number" id="maxPrice" placeholder="Max $"/>
+    <button class="btn ghost" id="btnClearFilters">Limpiar</button>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center">
+    <select id="recoPos" title="Recomendador por posición">
+      <option value="">Recomendador: Elige posición</option>
+      <option value="portero">Portero</option>
+      <option value="defensa">Defensa</option>
+      <option value="mediocentro">Mediocentro</option>
+      <option value="extremo">Extremo</option>
+      <option value="delantero">Delantero</option>
+    </select>
+    <button class="btn" id="btnMyReco">Ver recomendados</button>
+    <button class="btn" id="btnSala">Fútbol Sala</button>
+  </div>
+</div>
+
+<main>
+  <div class="layout">
+    <!-- Catalog -->
+    <section>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Catálogo</h2>
+          <div class="muted">Productos: <span id="productCount">0</span></div>
+        </div>
+
+        <!-- Sections by category / tiers -->
+        <div id="catalogSections" style="margin-top:12px">
+          <!-- injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Cart & extras -->
+    <aside class="sticky-panel">
+      <div class="card">
+        <div class="cart-head">
+          <div>
+            <h3 style="margin:0">Carrito</h3>
+            <div class="muted">Guarda y gestiona tu compra</div>
+          </div>
+          <div><button id="btnCheckout" class="btn">Pagar</button></div>
+        </div>
+
+        <div id="cartItems" class="cart-items" style="margin-top:12px">
+          <div class="muted center">Tu carrito está vacío</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between" class="muted"><div>Subtotal</div><div id="subtotal">$0</div></div>
+          <div style="display:flex;justify-content:space-between" class="muted"><div>Envío</div><div id="shipping">$0</div></div>
+          <div style="display:flex;justify-content:space-between;font-size:18px"><div>Total</div><div id="total">$0</div></div>
+
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="btnEmpty" class="btn ghost">Vaciar</button>
+            <button id="btnSave" class="btn ghost">Guardar</button>
+          </div>
+
+          <div style="margin-top:10px" class="muted">Pago simulado: Tarjeta / PayPal / Contra entrega</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4 style="margin:0">Opiniones destacadas</h4>
+        <div id="featuredReviews" style="margin-top:8px" class="muted">Sin reseñas aún</div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer>Demo escolar • Todo es simulado. Para pagos reales se requiere backend y pasarelas.</footer>
+
+<!-- Modal root -->
+<div id="modalRoot" aria-hidden="true"></div>
+
+<script>
+/* ========= Data: official images + catalog =========
+We include the models you requested (Adidas, Nike, Puma) and many jerseys.
+Each product has fields: id, brand, name, type (FG/AG/Turf/Sala), tier (low/mid/high),
+price (COP), qty, image url, desc, reviews (array)
+*/
+const sampleProducts = [
+  // --- ADIDAS (guayos)
+  {id:'p_ad_pred', brand:'Adidas', name:'Predator', type:'FG', tier:'mid', price:480000, qty:8,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/1f6c7832a9734c63bde8af0b00fb3bd9_9366/Guayos_Predator_Accuracy_FG_Rojo_GW8395_01_standard.jpg',
+    desc:'Control y efecto para remates y pases. Suela FG para terrenos firmes.', reviews:[{user:'Javier',rating:5,txt:'Excelente control.'}]},
+  {id:'p_ad_f50', brand:'Adidas', name:'F50', type:'FG', tier:'high', price:650000, qty:5,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/6ea8656aa7794dd78cdc2b203a0ffb7a_9366/F50_Elite_FG_Blanco_IE2622_01_standard.jpg',
+    desc:'Velocidad y ajuste ceñido para sprints explosivos.', reviews:[{user:'Luis',rating:4,txt:'Muy ligeros.'}]},
+  {id:'p_ad_copa', brand:'Adidas', name:'Copa', type:'Turf', tier:'mid', price:420000, qty:6,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/5e89d0ad2de44c37bd3d193ad5d295df_9366/Copa_Pure_2.0_Firm_Ground_Blanco_IE7489_01_standard.jpg',
+    desc:'Comodidad clásica con suela turf para sintéticas.', reviews:[]},
+  {id:'p_ad_predacc3', brand:'Adidas', name:'Predator Accuracy.3', type:'FG', tier:'low', price:380000, qty:7,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/4b8fe9433ed04563abeeafc300ff8f68_9366/Guayos_Predator_Accuracy.3_FG_Rojo_GW4625_01_standard.jpg',
+    desc:'Versión accesible del Predator, buen equilibrio precio-rendimiento.', reviews:[]},
+
+  // --- NIKE (guayos)
+  {id:'p_nk_tiempo', brand:'Nike', name:'Tiempo', type:'FG', tier:'mid', price:450000, qty:6,
+    image:'https://static.nike.com/a/images/t_prod/w_960,c_limit,f_auto/q2l2tgb3xg9g8b2nqj9y/tiempo-legend-10-elite-fg.png',
+    desc:'Confort tradicional y toque premium.', reviews:[{user:'Carlos',rating:5,txt:'Cómodos y con buen agarre.'}]},
+  {id:'p_nk_mercurial', brand:'Nike', name:'Mercurial', type:'AG', tier:'high', price:520000, qty:4,
+    image:'https://static.nike.com/a/images/t_prod/w_960,c_limit,f_auto/51cfc0b32b65420b87f03bd59ef28424/mercurial-superfly-9-elite-fg.png',
+    desc:'Diseño para velocidad, ideal para extremos.', reviews:[]},
+  {id:'p_nk_mbappe', brand:'Nike', name:'Kylian Mbappé Edition', type:'FG', tier:'high', price:550000, qty:3,
+    image:'https://static.nike.com/a/images/t_prod/w_960,c_limit,f_auto/6c9af709-509a-4a99-9886-5413512fdba1/mbappe-mercurial-superfly.png',
+    desc:'Edición firmada al estilo Mbappé: rendimiento de élite.', reviews:[]},
+
+  // --- PUMA (3 models)
+  {id:'p_pm_ultra', brand:'Puma', name:'Puma Ultra', type:'AG', tier:'mid', price:400000, qty:9,
+    image:'https://images.puma.com/image/upload/f_auto,q_auto,w_600/global/107165/01/sv01/fnd/EEA',
+    desc:'Ligero y aerodinámico para artificial.', reviews:[]},
+  {id:'p_pm_future', brand:'Puma', name:'Puma Future', type:'FG', tier:'high', price:520000, qty:5,
+    image:'https://images.puma.com/image/upload/f_auto,q_auto,w_600/global/107180/01/sv01/fnd/EEA',
+    desc:'Ajuste dinámico y adaptable.', reviews:[]},
+  {id:'p_pm_king', brand:'Puma', name:'Puma King', type:'FG', tier:'mid', price:410000, qty:7,
+    image:'https://images.puma.com/image/upload/f_auto,q_auto,w_600/global/107348/01/sv01/fnd/EEA',
+    desc:'Durabilidad y confort clásico.', reviews:[]},
+
+  // --- CAMISETAS CLUB y SELECCIONES (official images where available)
+  {id:'c_barca', brand:'Adidas', name:'Barcelona 24/25 Home', type:'Camiseta', tier:'mid', price:320000, qty:20,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/541ec31eabf04fc8a7d2af2b00db97ac_9366/FC_Barcelona_23-24_Camiseta_Local_Azul_HR5639_01_laydown.jpg',
+    desc:'Camiseta oficial FC Barcelona (edición 24/25).', reviews:[]},
+  {id:'c_rm', brand:'Adidas', name:'Real Madrid 24/25 Home', type:'Camiseta', tier:'mid', price:330000, qty:18,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/faa3d17adf064252b5b6af1d016ff63d_9366/Real_Madrid_23-24_Camiseta_Local_Blanco_HR3796_01_laydown.jpg',
+    desc:'Camiseta oficial Real Madrid.', reviews:[]},
+  {id:'c_ars', brand:'Adidas', name:'Arsenal 24/25 Home', type:'Camiseta', tier:'mid', price:310000, qty:15,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/2a2c90be0a97404caa9daf2c01056e1b_9366/Arsenal_23-24_Camiseta_Local_Rojo_HR3725_01_laydown.jpg',
+    desc:'Camiseta oficial Arsenal.', reviews:[]},
+  {id:'c_chel', brand:'Nike', name:'Chelsea 24/25 Home', type:'Camiseta', tier:'mid', price:310000, qty:12,
+    image:'https://images.nike.com/is/image/DotCom/DV5547_496',
+    desc:'Camiseta oficial Chelsea (edición reciente).', reviews:[]},
+  {id:'c_mancity', brand:'Puma', name:'Manchester City 24/25 Home', type:'Camiseta', tier:'mid', price:320000, qty:16,
+    image:'https://images.puma.com/image/upload/f_auto,q_auto,w_600/global/770438/01/sv01/fnd/EEA',
+    desc:'Camiseta oficial Manchester City.', reviews:[]},
+  {id:'c_manu', brand:'Adidas', name:'Manchester United 24/25 Home', type:'Camiseta', tier:'mid', price:320000, qty:14,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/33faf2c2d9f84ebaae56af2e010cbec6_9366/Manchester_United_23-24_Camiseta_Local_Rojo_HR3724_01_laydown.jpg',
+    desc:'Camiseta oficial Manchester United.', reviews:[]},
+  {id:'c_bayern', brand:'Adidas', name:'Bayern Munich 24/25 Home', type:'Camiseta', tier:'mid', price:320000, qty:10,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/b4bb1c5d682848a59d6fafa8011c1940_9366/FC_Bayern_23-24_Camiseta_Local_Rojo_HR3716_01_laydown.jpg',
+    desc:'Camiseta oficial Bayern Munich.', reviews:[]},
+
+  // selections
+  {id:'s_col', brand:'Adidas', name:'Colombia 2025 Home', type:'Camiseta', tier:'mid', price:300000, qty:30,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/9f93a588ed13405f932ead4400b93414_9366/Colombia_23_Home_Jersey_Yellow_HT4306_01_laydown.jpg',
+    desc:'Camiseta oficial selección Colombia.', reviews:[]},
+  {id:'s_mex', brand:'Adidas', name:'México 22 Home', type:'Camiseta', tier:'mid', price:300000, qty:26,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/cfa96fd65af046748f2dee1200b46ecb_9366/Mexico_22_Home_Jersey_Green_HF1789_01_laydown.jpg',
+    desc:'Camiseta oficial México.', reviews:[]},
+  {id:'s_arg', brand:'Adidas', name:'Argentina 2022 Home', type:'Camiseta', tier:'mid', price:330000, qty:22,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/71af66e681af4aeb9051af2f013dc30b_9366/Argentina_22_Home_Jersey_White_HF1845_01_laydown.jpg',
+    desc:'Camiseta oficial Argentina.', reviews:[]},
+  {id:'s_usa', brand:'Nike', name:'USA 23 Home', type:'Camiseta', tier:'mid', price:300000, qty:20,
+    image:'https://static.nike.com/a/images/t_default/cb9fb39a-b252-4cae-9c40-1b520d05f6f1/2022-23-nigeria-stadium-home-mens-football-shirt-Ct3H3M.png',
+    desc:'Camiseta USA (edición reciente).', reviews:[]},
+  {id:'s_ita', brand:'Adidas', name:'Italia 23 Home', type:'Camiseta', tier:'mid', price:310000, qty:18,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/73be5d7ecedb413eb7b1af91007f38db_9366/Italy_2023_Home_Jersey_Blue_IB0478_01_laydown.jpg',
+    desc:'Camiseta Italia.', reviews:[]},
+  {id:'s_esp', brand:'Adidas', name:'España 22 Home', type:'Camiseta', tier:'mid', price:310000, qty:16,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/a230ec6e6ad04ba59465afba00cddebe_9366/Spain_22_Home_Jersey_Red_HF1838_01_laydown.jpg',
+    desc:'Camiseta España.', reviews:[]},
+  {id:'s_ger', brand:'Adidas', name:'Alemania 22 Home', type:'Camiseta', tier:'mid', price:310000, qty:14,
+    image:'https://assets.adidas.com/images/w_600,f_auto,q_auto/8dfbc7a6ced34794aee3ae2100f76084_9366/Germany_22_Home_Jersey_White_HE2022_01_laydown.jpg',
+    desc:'Camiseta Alemania.', reviews:[]},
+  {id:'s_mar', brand:'Puma', name:'Marruecos 23 Home', type:'Camiseta', tier:'mid', price:300000, qty:12,
+    image:'https://images.puma.com/image/upload/f_auto,q_auto,w_600/global/765991/01/sv01/fnd/EEA',
+    desc:'Camiseta Marruecos.', reviews:[]}
+];
+
+// Persistence keys
+const KEY_PRODUCTS = 'ms_products_v1';
+const KEY_CART = 'ms_cart_v1';
+const KEY_ORDERS = 'ms_orders_v1';
+
+// Load from localStorage or bootstrap
+let products = JSON.parse(localStorage.getItem(KEY_PRODUCTS) || 'null') || sampleProducts;
+let cart = JSON.parse(localStorage.getItem(KEY_CART) || 'null') || [];
+let orders = JSON.parse(localStorage.getItem(KEY_ORDERS) || 'null') || [];
+
+// DOM refs
+const catalogSections = document.getElementById('catalogSections');
+const productCountEl = document.getElementById('productCount');
+const cartItemsEl = document.getElementById('cartItems');
+const subtotalEl = document.getElementById('subtotal');
+const shippingEl = document.getElementById('shipping');
+const totalEl = document.getElementById('total');
+const cartSummaryEl = document.getElementById('cartSummary');
+const featuredReviewsEl = document.getElementById('featuredReviews');
+const modalRoot = document.getElementById('modalRoot');
+
+// Filters
+const searchInput = document.getElementById('search');
+const filterBrand = document.getElementById('filterBrand');
+const filterType = document.getElementById('filterType');
+const filterTier = document.getElementById('filterTier');
+const minPriceIn = document.getElementById('minPrice');
+const maxPriceIn = document.getElementById('maxPrice');
+const btnClearFilters = document.getElementById('btnClearFilters');
+const btnMyReco = document.getElementById('btnMyReco');
+const recoPos = document.getElementById('recoPos');
+const btnSala = document.getElementById('btnSala');
+const btnCheckout = document.getElementById('btnCheckout');
+const btnEmpty = document.getElementById('btnEmpty');
+const btnSave = document.getElementById('btnSave');
+const btnExport = document.getElementById('btnExport');
+
+// Helpers
+function saveAll(){ localStorage.setItem(KEY_PRODUCTS, JSON.stringify(products)); localStorage.setItem(KEY_CART, JSON.stringify(cart)); localStorage.setItem(KEY_ORDERS, JSON.stringify(orders)); }
+function uid(pref='id'){ return pref + Math.random().toString(36).slice(2,9); }
+function money(n){ return '$' + Number(n).toLocaleString('es-CO'); }
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Render catalog by sections: we'll create sections for Guayos and Camisetas and inside each show tiers
+function renderCatalog(){
+  // apply filters
+  const q = (searchInput.value||'').toLowerCase().trim();
+  const brandF = filterBrand.value;
+  const typeF = filterType.value;
+  const tierF = filterTier.value;
+  const minP = Number(minPriceIn.value) || 0;
+  const maxP = Number(maxPriceIn.value) || 9999999999;
+
+  // grouping: Guayos (type != Camiseta) and Camisetas (type === 'Camiseta')
+  const guayos = products.filter(p=> p.type !== 'Camiseta');
+  const camisetas = products.filter(p=> p.type === 'Camiseta');
+
+  function filterList(list){
+    return list.filter(p=>{
+      if(brandF && p.brand !== brandF) return false;
+      if(typeF && p.type !== typeF) return false;
+      if(tierF && p.tier !== tierF) return false;
+      if(p.price < minP || p.price > maxP) return false;
+      if(q && !(p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
+
+  catalogSections.innerHTML = ''; let count=0;
+
+  // Function to render tiers inside a section
+  function renderSection(title, list){
+    if(!list.length) return;
+    count += list.length;
+    const sec = document.createElement('div');
+    sec.innerHTML = `<h3 style="margin:14px 0 8px">${title}</h3>`;
+    // tiers: low, mid, high
+    const tiers = {low:[], mid:[], high:[]};
+    list.forEach(p=> (tiers[p.tier]||tiers.mid).push(p));
+
+    for(const t of ['low','mid','high']){
+      const arr = tiers[t];
+      if(!arr.length) continue;
+      const tierTitle = t==='low' ? 'Gama baja' : (t==='mid' ? 'Gama media' : 'Gama alta / Élite');
+      const badgeClass = t==='low' ? 'tier-low' : (t==='mid' ? 'tier-mid' : 'tier-high');
+      const block = document.createElement('div');
+      block.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-top:12px"><div class="${badgeClass}">${tierTitle}</div><div class="muted" style="font-size:13px">(${arr.length} modelos)</div></div><div class="catalog" style="margin-top:10px"></div>`;
+      const catalogEl = block.querySelector('.catalog');
+      arr.forEach(p=>{
+        const div = document.createElement('article');
+        div.className='product';
+        div.innerHTML = `
+          <img class="pimg" loading="lazy" src="${p.image}" alt="${escapeHtml(p.name)}" onerror="this.style.opacity=.6;this.src='https://via.placeholder.com/500x300?text=No+image'"/>
+          <div class="pbody">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="pbrand">${escapeHtml(p.brand)} • ${escapeHtml(p.type)}</div>
+                <div class="pname">${escapeHtml(p.name)}</div>
+              </div>
+              <div class="badge">${money(p.price)}</div>
+            </div>
+            <div class="muted" style="font-size:13px">${escapeHtml(p.desc || '')}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+              <div style="display:flex;gap:8px;align-items:center;">
+                ${renderStars(p)}
+                <div class="muted" style="font-size:13px">Stock: ${p.qty}</div>
+              </div>
+              <div class="pactions">
+                <button class="btn ghost" data-view="${p.id}">Ver</button>
+                <button class="btn" ${p.qty===0 ? 'disabled' : ''} data-add="${p.id}">Agregar</button>
+              </div>
+            </div>
+          </div>
+        `;
+        catalogEl.appendChild(div);
+      });
+      sec.appendChild(block);
+    }
+    catalogSections.appendChild(sec);
+  }
+
+  renderSection('Guayos', filterList(guayos));
+  renderSection('Camisetas', filterList(camisetas));
+
+  productCountEl.textContent = count;
+
+  // attach listeners
+  document.querySelectorAll('[data-add]').forEach(btn => btn.onclick = ()=> { addToCart(btn.getAttribute('data-add'),1); });
+  document.querySelectorAll('[data-view]').forEach(btn => btn.onclick = ()=> { openProductModal(btn.getAttribute('data-view')); });
+}
+
+// small helper to render star rating average
+function renderStars(p){
+  const rs = p.reviews && p.reviews.length ? Math.round(p.reviews.reduce((s,r)=>s+r.rating,0)/p.reviews.length) : 0;
+  let stars = '<span class="stars">';
+  for(let i=0;i<rs;i++) stars += '★';
+  for(let i=rs;i<5;i++) stars += '☆';
+  stars += '</span>';
+  return stars;
+}
+
+/* ========= Cart logic (persistente) ========= */
+function saveCart(){ localStorage.setItem(KEY_CART, JSON.stringify(cart)); updateCartUI(); }
+function loadCart(){ cart = JSON.parse(localStorage.getItem(KEY_CART) || '[]'); updateCartUI(); }
+
+function addToCart(productId, qty=1){
+  const p = products.find(x=>x.id===productId);
+  if(!p){ alert('Producto no encontrado'); return; }
+  const existing = cart.find(x=>x.productId === productId);
+  const desired = (existing ? existing.qty : 0) + qty;
+  if(desired > p.qty){ alert('No hay suficiente stock'); return; }
+  if(existing) existing.qty += qty; else cart.push({productId, qty});
+  saveCart();
+  flash('Añadido al carrito');
+}
+
+function removeFromCart(productId){
+  cart = cart.filter(i=> i.productId !== productId); saveCart();
+}
+
+function changeQty(productId, qty){
+  qty = Number(qty) || 0;
+  const p = products.find(x=>x.id===productId);
+  if(qty > p.qty){ alert('No hay suficiente stock'); return; }
+  if(qty <= 0){ removeFromCart(productId); return; }
+  const it = cart.find(i=> i.productId===productId); if(it) it.qty = qty; saveCart();
+}
+
+function updateCartUI(){
+  // render cart items
+  const cartItems = cart.map(it=> {
+    const p = products.find(x=>x.id===it.productId) || {name:'(eliminado)', price:0, image:''};
+    return {p,qty:it.qty};
+  });
+
+  if(!cartItems.length){
+    cartItemsEl.innerHTML = '<div class="muted center">Tu carrito está vacío</div>';
+  } else {
+    cartItemsEl.innerHTML = cartItems.map(item => `
+      <div class="cart-row" data-id="${item.p.id}">
+        <img src="${item.p.image}" onerror="this.src='https://via.placeholder.com/80x60?text=No+img'"/>
+        <div class="meta">
+          <div style="font-weight:700">${escapeHtml(item.p.name)}</div>
+          <div class="muted" style="font-size:13px">${escapeHtml(item.p.brand)} • ${money(item.p.price)}</div>
+        </div>
+        <div style="min-width:110px">
+          <div class="cart-controls">
+            <button class="btn ghost" data-dec="${item.p.id}">-</button>
+            <input data-qty="${item.p.id}" value="${item.qty}" style="width:50px;padding:6px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;text-align:center"/>
+            <button class="btn ghost" data-inc="${item.p.id}">+</button>
+          </div>
+          <div style="margin-top:6px;text-align:right"><button class="btn ghost" data-rem="${item.p.id}">Eliminar</button></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // attach events
+  document.querySelectorAll('[data-inc]').forEach(b => b.onclick = ()=> {
+    const id = b.getAttribute('data-inc'); const it = cart.find(x=>x.productId===id); if(!it) return; changeQty(id, it.qty + 1);
+  });
+  document.querySelectorAll('[data-dec]').forEach(b => b.onclick = ()=> {
+    const id = b.getAttribute('data-dec'); const it = cart.find(x=>x.productId===id); if(!it) return; changeQty(id, it.qty - 1);
+  });
+  document.querySelectorAll('[data-rem]').forEach(b => b.onclick = ()=> {
+    const id = b.getAttribute('data-rem'); if(!confirm('Eliminar del carrito?')) return; removeFromCart(id);
+  });
+  document.querySelectorAll('input[data-qty]').forEach(inp => inp.onchange = ()=> {
+    const id = inp.getAttribute('data-qty'); changeQty(id, Number(inp.value));
+  });
+
+  // totals
+  const subtotal = cart.reduce((s, it)=> {
+    const p = products.find(x=>x.id===it.productId); return s + (p ? p.price * it.qty : 0);
+  }, 0);
+  const shipping = subtotal === 0 ? 0 : (subtotal > 600000 ? 0 : 15000);
+  const total = subtotal + shipping;
+  subtotalEl.textContent = money(subtotal);
+  shippingEl.textContent = money(shipping);
+  totalEl.textContent = money(total);
+  cartSummaryEl.textContent = `Carrito: ${cart.reduce((a,b)=>a+b.qty,0)} • ${money(total)}`;
+
+  // persist cart
+  localStorage.setItem(KEY_CART, JSON.stringify(cart));
+  // update featured reviews preview
+  renderFeaturedReviews();
+}
+
+// Flash helper
+function flash(text, ms=900){
+  const el = document.createElement('div');
+  el.style.position='fixed'; el.style.left='50%'; el.style.transform='translateX(-50%)'; el.style.bottom='18px';
+  el.style.background='linear-gradient(90deg,var(--accent),var(--accent-2))'; el.style.color='#042033'; el.style.padding='10px 14px'; el.style.borderRadius='10px';
+  el.style.fontWeight='700'; el.style.zIndex=9999; el.textContent = text; document.body.appendChild(el);
+  setTimeout(()=> el.remove(), ms);
+}
+
+// Modal helpers
+function openModal(html){
+  modalRoot.innerHTML = `<div class="modal-backdrop"><div class="modal">${html}</div></div>`;
+  modalRoot.setAttribute('aria-hidden','false');
+  modalRoot.querySelector('.modal-backdrop')?.addEventListener('click', (e)=>{ if(e.target === modalRoot.querySelector('.modal-backdrop')) closeModal(); });
+}
+function closeModal(){ modalRoot.innerHTML = ''; modalRoot.setAttribute('aria-hidden','true'); }
+
+/* ========= Product modal (detail + reviews) ========= */
+function openProductModal(id){
+  const p = products.find(x=>x.id === id); if(!p) return;
+  const reviewsHtml = (p.reviews || []).map(r=> `<div style="border-bottom:1px dashed rgba(255,255,255,0.04);padding:8px 0"><div style="font-weight:700">${escapeHtml(r.user)} <span class="muted" style="font-weight:400">· ${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span></div><div class="muted" style="font-size:13px">${escapeHtml(r.txt)}</div></div>`).join('') || '<div class="muted">Sin reseñas</div>';
+  openModal(`
+    <div style="display:flex;gap:12px">
+      <img src="${p.image}" style="width:320px;height:220px;object-fit:cover;border-radius:10px" onerror="this.src='https://via.placeholder.com/320x220?text=No+image'"/>
+      <div style="flex:1">
+        <h3 style="margin:0">${escapeHtml(p.name)}</h3>
+        <div class="muted">${escapeHtml(p.brand)} • ${escapeHtml(p.type)} • ${p.tier.toUpperCase()}</div>
+        <div style="font-weight:800;margin-top:8px">${money(p.price)}</div>
+        <p class="muted" style="margin-top:8px">${escapeHtml(p.desc)}</p>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="modalAdd">Agregar al carrito</button>
+          <button class="btn ghost" id="modalClose">Cerrar</button>
+        </div>
+      </div>
+    </div>
+    <hr style="margin:12px 0"/>
+    <h4 style="margin:0 0 8px 0">Reseñas</h4>
+    <div>${reviewsHtml}</div>
+    <div style="margin-top:8px">
+      <h4 style="margin:0 0 8px 0">Dejar reseña</h4>
+      <input id="revUser" placeholder="Tu nombre" style="padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);width:40%;margin-right:8px"/>
+      <select id="revRating" style="padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)">
+        <option value="5">5 ★</option><option value="4">4 ★</option><option value="3">3 ★</option><option value="2">2 ★</option><option value="1">1 ★</option>
+      </select>
+      <div><textarea id="revTxt" placeholder="Escribe tu opinión..." style="width:100%;margin-top:8px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)"></textarea></div>
+      <div style="margin-top:8px"><button class="btn" id="revSubmit">Enviar reseña</button></div>
+    </div>
+  `);
+
+  document.getElementById('modalAdd').onclick = ()=>{
+    addToCart(p.id,1); closeModal();
+  };
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('revSubmit').onclick = ()=>{
+    const user = document.getElementById('revUser').value.trim() || 'Anónimo';
+    const rating = Number(document.getElementById('revRating').value);
+    const txt = document.getElementById('revTxt').value.trim() || '';
+    p.reviews = p.reviews || []; p.reviews.unshift({user, rating, txt});
+    saveAll(); flash('Reseña añadida'); closeModal(); renderCatalog(); updateCartUI();
+  };
+}
+
+/* ========= Recommender (simple rule-based) ========= */
+function recommendByPosition(pos){
+  // simple heuristics:
+  // portero -> zapatos con buen agarre interior (Sala/Indoor or Turf), prefer control
+  // defensa -> estabilidad, mid/high tiers
+  // mediocentro -> control & toque (Predator/Copa)
+  // extremo -> velocidad (Mercurial, F50, Ultra)
+  // delantero -> velocidad + precision (Mercurial / Mbappé / F50)
+  const posRules = {
+    portero: p => (p.type==='Sala' || p.type==='Turf' || p.name.toLowerCase().includes('copa') || p.name.toLowerCase().includes('king')),
+    defensa: p => p.tier === 'mid' || p.tier === 'high',
+    mediocentro: p => /predator|copa|tiempo/i.test(p.name),
+    extremo: p => /mercurial|f50|ultra|speed/i.test(p.name),
+    delantero: p => /mercurial|f50|mbapp/i.test(p.name)
+  };
+  const rule = posRules[pos] || (()=>true);
+  return products.filter(rule).slice(0,6);
+}
+
+/* ========= Featured reviews ========= */
+function renderFeaturedReviews(){
+  // pick latest 3 reviews across products
+  const all = [];
+  products.forEach(p=> (p.reviews||[]).forEach(r=> all.push({...r, product:p.name, id:uid()})));
+  all.sort((a,b)=> (b.date||0) - (a.date||0));
+  const top = all.slice(0,3);
+  if(!top.length) featuredReviewsEl.innerHTML = '<div class="muted">Sin reseñas aún</div>';
+  else featuredReviewsEl.innerHTML = top.map(r=> `<div style="border-bottom:1px dashed rgba(255,255,255,0.04);padding:8px 0"><b>${escapeHtml(r.user)}</b> en <b>${escapeHtml(r.product)}</b> · <span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span><div class="muted" style="font-size:13px">${escapeHtml(r.txt)}</div></div>`).join('');
+}
+
+/* ========= Setup events & initial render ========= */
+document.getElementById('btnClearFilters').onclick = ()=>{
+  searchInput.value=''; filterBrand.value=''; filterType.value=''; filterTier.value=''; minPriceIn.value=''; maxPriceIn.value=''; renderCatalog();
+};
+searchInput.addEventListener('input', renderCatalog);
+filterBrand.addEventListener('change', renderCatalog);
+filterType.addEventListener('change', renderCatalog);
+filterTier.addEventListener('change', renderCatalog);
+minPriceIn.addEventListener('input', renderCatalog);
+maxPriceIn.addEventListener('input', renderCatalog);
+
+document.getElementById('btnMyReco').onclick = ()=>{
+  const pos = recoPos.value;
+  if(!pos){ alert('Selecciona una posición para recomendar'); return; }
+  const rec = recommendByPosition(pos);
+  // show modal with recommendations
+  openModal(`<h3>Recomendados para: ${escapeHtml(pos)}</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${rec.map(p=>`<div style="background:#071226;padding:8px;border-radius:8px"><img src="${p.image}" style="width:100%;height:110px;object-fit:cover"/><div style="font-weight:700;margin-top:6px">${escapeHtml(p.name)}</div><div class="muted">${escapeHtml(p.brand)}</div><div style="margin-top:6px"><button class="btn" data-add="${p.id}">Agregar</button></div></div>`).join('')}</div>`);
+  // wire add buttons
+  modalRoot.querySelectorAll('[data-add]').forEach(b=> b.onclick = ()=>{ addToCart(b.getAttribute('data-add'),1); closeModal(); });
+};
+
+document.getElementById('btnSala').onclick = ()=>{
+  // filter to Sala / Indoor products
+  openModal(`<h3>Guayos Fútbol Sala</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${products.filter(p=>p.type==='Sala').map(p=>`<div style="background:#071226;padding:8px;border-radius:8px"><img src="${p.image}" style="width:100%;height:110px;object-fit:cover"/><div style="font-weight:700;margin-top:6px">${escapeHtml(p.name)}</div><div class="muted">${escapeHtml(p.brand)}</div><div style="margin-top:6px"><button class="btn" data-add="${p.id}">Agregar</button></div></div>`).join('')}</div>`);
+  modalRoot.querySelectorAll('[data-add]').forEach(b=> b.onclick = ()=>{ addToCart(b.getAttribute('data-add'),1); closeModal(); });
+};
+
+// Checkout simulated
+btnCheckout.onclick = ()=> {
+  if(!cart.length){ alert('Carrito vacío'); return; }
+  // simple checkout modal
+  const subtotal = cart.reduce((s,it)=> { const p = products.find(x=>x.id===it.productId); return s + (p ? p.price*it.qty : 0); }, 0);
+  const shipping = subtotal === 0 ? 0 : (subtotal > 600000 ? 0 : 15000);
+  const total = subtotal + shipping;
+  openModal(`
+    <div style="display:flex;gap:12px">
+      <div style="flex:1">
+        <h3>Checkout</h3>
+        <input id="cname" placeholder="Nombre" style="width:100%;padding:8px;margin-bottom:8px"/>
+        <input id="cphone" placeholder="Teléfono" style="width:100%;padding:8px;margin-bottom:8px"/>
+        <input id="cemail" placeholder="Correo (opcional)" style="width:100%;padding:8px;margin-bottom:8px"/>
+        <div style="margin-top:8px">
+          <label class="muted">Método de pago (simulado)</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <label class="badge"><input type="radio" name="pay" value="card" checked/> Tarjeta</label>
+            <label class="badge"><input type="radio" name="pay" value="paypal"/> PayPal</label>
+            <label class="badge"><input type="radio" name="pay" value="cod"/> Contra entrega</label>
+          </div>
+        </div>
+      </div>
+      <div style="width:320px">
+        <div class="card" style="background:transparent;padding:12px">
+          <h4 style="margin:0">Resumen</h4>
+          <div id="checkoutItems" style="margin-top:8px"></div>
+          <div style="display:flex;justify-content:space-between" class="muted"><div>Subtotal</div><div>${money(subtotal)}</div></div>
+          <div style="display:flex;justify-content:space-between" class="muted"><div>Envío</div><div>${money(shipping)}</div></div>
+          <div style="display:flex;justify-content:space-between;font-size:18px"><div>Total</div><div>${money(total)}</div></div>
+          <div style="margin-top:10px"><button id="confirmPay" class="btn">Confirmar pedido</button> <button id="cancelPay" class="btn ghost">Cancelar</button></div>
+        </div>
+      </div>
+    </div>
+  `);
+  // fill checkout items
+  document.getElementById('checkoutItems').innerHTML = cart.map(it=> { const p = products.find(x=>x.id===it.productId); return `<div style="display:flex;justify-content:space-between">${escapeHtml(p.name)} x${it.qty} <span>${money(p.price*it.qty)}</span></div>`; }).join('');
+  document.getElementById('cancelPay').onclick = closeModal;
+  document.getElementById('confirmPay').onclick = ()=> {
+    const name = document.getElementById('cname').value.trim();
+    const phone = document.getElementById('cphone').value.trim();
+    if(!name || !phone){ alert('Completa nombre y teléfono'); return; }
+    // process (simulated) -> create order, decrease stock
+    const order = { id: uid('ord_'), createdAt: Date.now(), items: JSON.parse(JSON.stringify(cart)), subtotal, shipping, total, customer:{name,phone,email:document.getElementById('cemail').value || ''} };
+    // decrease stock
+    for(const it of cart){ const p = products.find(x=>x.id===it.productId); if(p) p.qty = Math.max(0, p.qty - it.qty); }
+    orders.push(order);
+    cart = []; saveAll(); renderCatalog(); updateCartUI(); closeModal();
+    alert(`Pedido realizado con éxito!\nID: ${order.id}\nTotal: ${money(order.total)} (simulado)`);
+  };
+};
+
+// export orders (CSV)
+btnExport.onclick = ()=> {
+  if(!orders.length){ alert('No hay pedidos para exportar'); return; }
+  const headers = ['id','createdAt','customer_name','customer_phone','subtotal','shipping','total','items'];
+  const rows = orders.map(o => {
+    const items = o.items.map(it=> { const p = products.find(x=>x.id===it.productId); return `${p ? p.name : '(eliminado)'} x${it.qty}`; }).join(' | ');
+    return [o.id, new Date(o.createdAt).toLocaleString(), (o.customer.name||''), (o.customer.phone||''), o.subtotal, o.shipping, o.total, items].map(v=> `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `pedidos_${new Date().toISOString().slice(0,10)}.csv`; a.click(); a.remove(); URL.revokeObjectURL(url);
+};
+
+// utility: render featured reviews
+function renderFeaturedReviews(){ // implement similarly to earlier
+  const all = [];
+  products.forEach(p=> (p.reviews||[]).forEach(r=> all.push({...r, product:p.name, date:r.date || 0})));
+  all.sort((a,b)=> b.date - a.date);
+  const top = all.slice(0,3);
+  featuredReviewsEl.innerHTML = top.length ? top.map(r=> `<div style="border-bottom:1px dashed rgba(255,255,255,0.04);padding:8px 0"><b>${escapeHtml(r.user)}</b> en <b>${escapeHtml(r.product)}</b> · <span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span><div class="muted" style="font-size:13px">${escapeHtml(r.txt)}</div></div>`).join('') : '<div class="muted">Sin reseñas aún</div>';
+}
+
+// Initial render
+function init(){
+  renderCatalog();
+  loadCart();
+  updateCartUI();
+  renderFeaturedReviews();
+  saveAll();
+}
+init();
+
+// renderCatalog accessible
+window.renderCatalog = renderCatalog;
+window.addToCart = addToCart;
+window.updateCartUI = updateCartUI;
+window.openProductModal = openProductModal;
+window.recommendByPosition = recommendByPosition;
+
+// Save before unload
+window.addEventListener('beforeunload', saveAll);
+</script>
+</body>
 </html>
